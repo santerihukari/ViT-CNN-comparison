@@ -7,10 +7,10 @@ __pycache__/
 *.so
 
 # Project related
-data/
-*/checkpoints/*
+data/*
+*/checkpoints
 *~
-
+tb_logs/ViT/*/checkpoints
 # Distribution / packaging
 .Python
 build/

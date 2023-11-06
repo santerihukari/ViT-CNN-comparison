@@ -25,5 +25,4 @@ DATASET:
   DATA_SAMPLESET_NAME: "subsets/1000train+1000val_samples/Subset3.yml"
 LOGGER:
   logger_path: "tb_logs/"
-  prelogger_name: "ViT_prelog"
   logger_name: "ViT"

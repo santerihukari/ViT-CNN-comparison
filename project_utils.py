@@ -18,4 +18,3 @@ def get_cuda_names():
     devices = [d for d in range(torch.cuda.device_count())]
     device_names = [torch.cuda.get_device_name(d) for d in devices]
     return device_names
-print("THIS IS OLD VERSION, PORT OUT OF THIS")

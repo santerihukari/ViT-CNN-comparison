@@ -6,6 +6,11 @@ __pycache__/
 # C extensions
 *.so
 
+# Project related
+data/
+*/checkpoints/*
+*~
+
 # Distribution / packaging
 .Python
 build/

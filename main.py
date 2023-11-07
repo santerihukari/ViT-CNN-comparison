@@ -12,11 +12,10 @@ device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("
 
 
 cfgs = [
-    'configs/ViT_s1000_e3-1.yml',
-    'configs/ViT_s1000_e4-1.yml',
-    'configs/ViT.yml']
-with open('configs/ViT.yml', 'r') as file:
-    cfg = yaml.safe_load(file)
+    'configs/ViT_narvi_1.yml',
+    'configs/ViT_narvi_2.yml',
+    'configs/ViT_narvi_3.yml']
+
 for cfgpath in cfgs:
     with open(cfgpath, 'r') as file:
         cfg = yaml.safe_load(file)
@@ -26,11 +25,8 @@ for cfgpath in cfgs:
 
     train_dataset = CIFAR10(root=cfg["DATASET"]["DATASET_PATH"], train=True, transform=train_transform, download=True)
 
-    L.seed_everything(42)
     with open(cfg["DATASET"]["DATA_SAMPLESET_NAME"], 'r') as file:
         sampleset = yaml.load(file, Loader=yaml.FullLoader)
-    print(len(sampleset))
-    L.seed_everything(42)
     train_set = torch.utils.data.Subset(train_dataset, sampleset['Train_sample_ids'])
     val_set = torch.utils.data.Subset(train_dataset, sampleset['Val_sample_ids'])
 

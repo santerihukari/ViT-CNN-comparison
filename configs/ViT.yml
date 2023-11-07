@@ -3,7 +3,7 @@ TRAIN_LOADER:
 TRAINER:
   NAME: "ViT-Test"
   BASE_LR: 3e-4
-  MAX_EPOCHS: 50
+  MAX_EPOCHS: 1
   CHECKPOINT_PATH: "saved_models/VisionTransformers/"
   LOG_EVERY_N_STEPS: 1
   TUNE: "False"
@@ -23,7 +23,7 @@ MODEL_ARGS:
 DATASET:
   DATASET_PATH: "data/"
   DATASET: "CIFAR-10"
-  DATA_SAMPLESET_NAME: "subsets/CIFAR-10_full_sequential/CIFAR-10_full_sequential_0.yml"
+  DATA_SAMPLESET_NAME: "subsets/1000train+1000val_samples/Subset1.yml"
 LOGGER:
   logger_path: "narvi_logs/"
   logger_name: "ViT"

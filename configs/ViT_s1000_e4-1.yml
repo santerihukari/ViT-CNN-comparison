@@ -6,6 +6,7 @@ TRAINER:
   MAX_EPOCHS: 4
   CHECKPOINT_PATH: "saved_models/VisionTransformers/"
   LOG_EVERY_N_STEPS: 1
+  TUNE: "False"
 
 MODEL_ARGS:
   embed_dim: 256

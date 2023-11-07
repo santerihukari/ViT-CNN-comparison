@@ -1,19 +1,14 @@
-# make trainer use all devices
-# make conda environment & export it
+# make trainer use all devices // DONE
+# make conda environment & export it // Created, just export it now
 # more subsets which are randomly generated
-# list dependencies
-# test before commiting for experiments
+# list dependencies // Partly done
+# test before committing for experiments
 
 
 import os
 import lightning as L
 import torch
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
-from torchvision import transforms
-from torchvision.datasets import CIFAR10
-import torch.utils.data as data
-
-import yaml
 from model.ViT import ViT
 from pytorch_lightning import loggers as pl_loggers
 from get_device_info import get_cpu_name
@@ -39,10 +34,11 @@ def train_model(cfg, train_loader, val_loader):
         )
     )
     logger.save()
+
     trainer = L.Trainer(
         default_root_dir=os.path.join(cfg["TRAINER"]["CHECKPOINT_PATH"], "ViT"),
         accelerator="auto",
-        devices=1,
+        devices=1 if ((not torch.cuda.is_available()) or cfg["TRAINER"]["TUNE"] == "True") else list(range(torch.cuda.device_count())),
         max_epochs=cfg["TRAINER"]["MAX_EPOCHS"], #default 180
         logger=logger,
         log_every_n_steps=cfg["TRAINER"]["LOG_EVERY_N_STEPS"],

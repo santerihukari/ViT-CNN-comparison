@@ -11,9 +11,10 @@ torch.backends.cudnn.benchmark = False
 device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 
 
-cfgs = ['configs/ViT_s1000_e3-1.yml',
-        'configs/ViT_s1000_e4-1.yml',
-        'configs/ViT.yml']
+cfgs = [
+    'configs/ViT_s1000_e3-1.yml',
+    'configs/ViT_s1000_e4-1.yml',
+    'configs/ViT.yml']
 with open('configs/ViT.yml', 'r') as file:
     cfg = yaml.safe_load(file)
 for cfgpath in cfgs:

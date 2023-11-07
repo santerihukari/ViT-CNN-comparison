@@ -23,7 +23,7 @@ MODEL_ARGS:
 DATASET:
   DATASET_PATH: "data/"
   DATASET: "CIFAR-10"
-  DATA_SAMPLESET_NAME: "subsets/CIFAR-10_full_sequential/CIFAR-10_full_randomshuffle_0.yml"
+  DATA_SAMPLESET_NAME: "subsets/CIFAR-10_full_randomshuffle/CIFAR-10_full_randomshuffle_0.yml"
 LOGGER:
   logger_path: "narvi_logs/"
   logger_name: "ViT"

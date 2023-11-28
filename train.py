@@ -10,6 +10,7 @@ import lightning as L
 import torch
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from model.ViT import ViT
+from model.resnet import RN
 from pytorch_lightning import loggers as pl_loggers
 from get_device_info import get_cpu_name
 from get_device_info import get_cuda_names
@@ -51,12 +52,20 @@ def train_model(cfg, train_loader, val_loader):
     trainer.logger._log_graph = True  # If True, we plot the computation graph in tensorboard
     trainer.logger._default_hp_metric = None  # Optional logging argument that we don't need
 
-    L.seed_everything(42)  # To be reproducable
-    model = ViT(cfg, train_loader)
-    trainer.fit(model, train_loader, val_loader)
-    # Load best checkpoint after training
-    model = ViT.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+    L.seed_everything(42)  # To be reproducible
+#    model = ViT(cfg, train_loader)
+    if cfg["MODEL_ARGS"]["MODEL_NAME"] == "resnet18":
+        model = RN(cfg, train_loader)
+        trainer.fit(model, train_loader, val_loader)
+        model = RN.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
+
+    elif cfg["MODEL_ARGS"]["MODEL_NAME"] == "ViT":
+        model = ViT(cfg, train_loader)
+        trainer.fit(model, train_loader, val_loader)
+        model = ViT.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+
+    # Load best checkpoint after training
 
     return model, trainer
 

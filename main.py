@@ -47,7 +47,7 @@ test_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize
 for cfgpath in cfgs:
     with open(cfgpath, 'r') as file:
         cfg = yaml.safe_load(file)
-    cfg["TRAINER"]["MAX_EPOCHS"] = 2
+#    cfg["TRAINER"]["MAX_EPOCHS"] = 2
     cifar_train = CIFAR10(root=cfg["DATASET"]["DATASET_PATH"], train=True, transform=train_transform, download=True)
     train_dataset = cifar_train
     with open(cfg["DATASET"]["DATA_SAMPLESET_NAME"], 'r') as file:

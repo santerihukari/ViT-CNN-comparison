@@ -147,8 +147,8 @@ class ViT(L.LightningModule):
         loss = F.cross_entropy(preds, labels)
         acc = (preds.argmax(dim=-1) == labels).float().mean()
 
-        self.log("%s_loss" % mode, loss, on_step=True, on_epoch=True, prog_bar=True)
-        self.log("%s_acc" % mode, acc, on_step=True, on_epoch=True, prog_bar=True)
+        self.log("%s_loss" % mode, loss, on_step=True, on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log("%s_acc" % mode, acc, on_step=True, on_epoch=True, prog_bar=True, sync_dist=True)
         return loss
 
     def training_step(self, batch, batch_idx):

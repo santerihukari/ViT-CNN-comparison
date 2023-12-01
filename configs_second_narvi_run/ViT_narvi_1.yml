@@ -1,5 +1,5 @@
 TRAIN_LOADER:
-  BATCH_SIZE: 128
+  BATCH_SIZE: 8
 TRAINER:
   NAME: "ViT-Test"
   BASE_LR: 3e-4
@@ -9,6 +9,7 @@ TRAINER:
   TUNE: "False"
 
 MODEL_ARGS:
+  MODEL_NAME: ViT
   embed_dim: 256
   hidden_dim: 512
   num_heads: 8

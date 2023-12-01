@@ -1,7 +1,7 @@
 TRAIN_LOADER:
-  BATCH_SIZE: 128
+  BATCH_SIZE: 8
 TRAINER:
-  NAME: "ViT-Test"
+  NAME: "resnet18-test"
   BASE_LR: 3e-4
   MAX_EPOCHS: 180
   CHECKPOINT_PATH: "saved_models/resnet18/"
@@ -27,4 +27,4 @@ DATASET:
   DATA_SAMPLESET_NAME: "subsets/CIFAR-10/CIFAR-10_sequential_350-150_0.yml"
 LOGGER:
   logger_path: "narvi_logs/"
-  logger_name: "ViT"
+  logger_name: "resnet"

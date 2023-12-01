@@ -37,7 +37,7 @@ def train_model(cfg, train_loader, val_loader):
     logger.save()
 
     trainer = L.Trainer(
-        default_root_dir=os.path.join(cfg["TRAINER"]["CHECKPOINT_PATH"], "ViT"),
+        default_root_dir=os.path.join(cfg["TRAINER"]["CHECKPOINT_PATH"], cfg["MODEL_ARGS"]["MODEL_NAME"]),
         accelerator="auto",
         devices=1 if ((not torch.cuda.is_available()) or cfg["TRAINER"]["TUNE"] == "True") else list(range(torch.cuda.device_count())),
         max_epochs=cfg["TRAINER"]["MAX_EPOCHS"], #default 180

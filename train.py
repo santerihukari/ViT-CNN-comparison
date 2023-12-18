@@ -24,8 +24,9 @@ print("Device:", device)
 def test_model(cfg, test_loader):
     trainer.test(model, dataloaders=test_loader, verbose=True)
 
-def train_model(cfg, train_loader, val_loader):
-    logger = pl_loggers.TensorBoardLogger(cfg["LOGGER"]["logger_path"], name=cfg["LOGGER"]["logger_name"])
+def train_model(cfg, model_logger, train_loader, val_loader):
+#    logger = pl_loggers.TensorBoardLogger(cfg["LOGGER"]["logger_path"], name=cfg["LOGGER"]["logger_name"])
+    logger = model_logger
     logger.log_hyperparams(
         params=dict(cpu_info=get_cpu_name(),
                     cuda_info=get_cuda_names(),

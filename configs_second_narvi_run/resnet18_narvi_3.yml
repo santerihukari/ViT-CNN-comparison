@@ -1,5 +1,5 @@
 TRAIN_LOADER:
-  BATCH_SIZE: 32
+  BATCH_SIZE: 8
 TRAINER:
   NAME: "resnet18-test"
   BASE_LR: 3e-4

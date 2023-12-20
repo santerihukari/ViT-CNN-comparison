@@ -34,6 +34,24 @@ cfgs_vit_2 = [
     'configs_second_narvi_run/resnet18_narvi_10.yml',
     'configs_second_narvi_run/ViT_narvi_10.yml'
     ]
+cfgs_vit_2 = [
+    'configs_second_narvi_run/ViT_narvi_2.yml',
+    'configs_second_narvi_run/resnet18_narvi_4.yml',
+    'configs_second_narvi_run/ViT_narvi_4.yml',
+    'configs_second_narvi_run/resnet18_narvi_5.yml',
+    'configs_second_narvi_run/ViT_narvi_5.yml',
+    'configs_second_narvi_run/resnet18_narvi_6.yml',
+    'configs_second_narvi_run/ViT_narvi_6.yml',
+    'configs_second_narvi_run/resnet18_narvi_7.yml',
+    'configs_second_narvi_run/ViT_narvi_7.yml',
+    'configs_second_narvi_run/resnet18_narvi_8.yml',
+    'configs_second_narvi_run/ViT_narvi_8.yml',
+    'configs_second_narvi_run/resnet18_narvi_9.yml',
+    'configs_second_narvi_run/ViT_narvi_9.yml',
+    'configs_second_narvi_run/resnet18_narvi_10.yml',
+    'configs_second_narvi_run/ViT_narvi_10.yml'
+    ]
+
 cfg_0 = 'configs_second_narvi_run/resnet18_narvi_1.yml'
 
 cfgs = cfgs_vit_2

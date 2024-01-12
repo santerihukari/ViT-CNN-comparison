@@ -19,13 +19,12 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 
-device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 print("Device:", device)
 def test_model(cfg, test_loader):
     trainer.test(model, dataloaders=test_loader, verbose=True)
 
 def train_model(cfg, model_logger, train_loader, val_loader):
-#    logger = pl_loggers.TensorBoardLogger(cfg["LOGGER"]["logger_path"], name=cfg["LOGGER"]["logger_name"])
     logger = model_logger
     logger.log_hyperparams(
         params=dict(cpu_info=get_cpu_name(),

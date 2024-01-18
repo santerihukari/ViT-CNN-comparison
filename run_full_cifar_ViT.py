@@ -41,8 +41,7 @@ cfgs_vit_2 = [
     'configs_second_narvi_run/ViT_narvi_10.yml'
     ]
 cfgs_vit_2 = [
-    'configs_second_narvi_run/ViT_narvi_10.yml',
-    'configs_second_narvi_run/resnet18_narvi_10.yml'
+    'configs_second_narvi_run/ViT_narvi_10.yml'
     ]
 
 cfg_0 = 'configs_second_narvi_run/resnet18_narvi_1.yml'

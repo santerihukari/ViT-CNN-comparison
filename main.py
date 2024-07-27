@@ -1,4 +1,6 @@
 import torch
+import argparse
+
 from torchvision import transforms
 from torchvision.datasets import CIFAR10
 import torch.utils.data as data
@@ -16,6 +18,13 @@ torch.backends.cudnn.benchmark = False
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 test_mode = 0 if torch.cuda.is_available() else 1
 
+parser = argparse.ArgumentParser(description="Train and evaluate a model on a dataset.")
+parser.add_argument('--config', type=str, default='config.yml', help='Path to the config file')
+parser.add_argument('--dataset_name', type=str, default='TinyImageNet', help='Name of the dataset (CIFAR-10 or TinyImageNet)')
+parser.add_argument('--model_name', type=str, default='ViT', help='Name of the model (ResNet-18 or ViT)')
+parser.add_argument('--subset_percentage', type=float, default=1, help='Percentage of the dataset to use for training and validation')
+args = parser.parse_args()
+
 # Load the config file
 config_path = 'config.yml'
 with open(config_path, 'r') as file:
@@ -23,12 +32,15 @@ with open(config_path, 'r') as file:
 
 # Define dataset parameters directly in the script
 DATASET_PATH = "data/"
-#DATASET_NAME = "Caltech-256"  # Use "CIFAR-10" or "TinyImageNet" as needed
-#DATASET_NAME = "CIFAR-10"  # Use "CIFAR-10" or "TinyImageNet" as needed
-DATASET_NAME = "TinyImageNet"  # Use "CIFAR-10" or "TinyImageNet" as needed
-MODEL_NAME = "ViT"  # Use "ResNet-18" as needed
-#MODEL_NAME = "ResNet-18"  # Use "ResNet-18" as needed
-SUBSET_PERCENTAGE = 0.01  # For example, 0.1 use 10% of the dataset
+#DATASET_NAME = "TinyImageNet"  # Use "CIFAR-10" or "TinyImageNet" as needed
+#MODEL_NAME = "ViT"  # Use "ResNet-18" as needed
+#SUBSET_PERCENTAGE = 0.5  # For example, 0.1 use 10% of the dataset
+
+# Update config with command line arguments
+DATASET_NAME = args.dataset_name
+MODEL_NAME = args.model_name
+SUBSET_PERCENTAGE = args.subset_percentage
+
 deterministic_seed = 42
 run_name = f"{DATASET_NAME}_sample_ratio{SUBSET_PERCENTAGE}_{MODEL_NAME}_seed-{deterministic_seed}"
 config['run_name'] = run_name
@@ -40,7 +52,7 @@ CHECKPOINT_PATH = "saved_models/resnet18/"
 
 if test_mode:
     SUBSET_PERCENTAGE = SUBSET_PERCENTAGE / 10
-    config['TRAINER']['MAX_EPOCHS'] = 1
+    config['TRAINER']['MAX_EPOCHS'] = 20
 config['MODEL_ARGS']['MODEL_NAME'] = MODEL_NAME
 
 if DATASET_NAME == "TinyImageNet":
@@ -81,7 +93,7 @@ def get_balanced_train_subset(dataset, subset_percentage, seed=deterministic_see
 
     # Calculate the number of samples based on the subset percentage
     num_samples = int(len(targets) * subset_percentage)
-
+    print(num_samples, "training samples.")
     # Ensure we have at least as many samples as there are classes
     if num_samples < n_classes:
         print(
@@ -102,6 +114,7 @@ def get_balanced_val_subset(dataset, subset_percentage, seed=deterministic_seed)
 
     # Calculate the number of samples based on the subset percentage
     num_samples = int(len(targets) * subset_percentage)
+    print(num_samples, "validation samples.")
 
     # Ensure we have at least as many samples as there are classes
     if num_samples < n_classes:
@@ -174,14 +187,3 @@ except Exception as err:
     print(type(err))  # the exception type
     print(err)  # actual error
     traceback.print_exc()
-
-# Optional: Test the model after training
-"""
-try:
-    test_model(model, test_loader, trainer)
-except Exception as err:
-    print("Testing failed.")
-    print(type(err))  # the exception type
-    print(err)  # actual error
-    traceback.print_exc()
-"""

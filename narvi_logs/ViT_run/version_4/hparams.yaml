@@ -1,0 +1,6 @@
+cpu_info: ' Intel(R) Core(TM) i7-10510U CPU @ 1.80GHz'
+cuda_info: []
+num_train_samples: 200
+num_val_samples: 200
+run_name: TinyImageNet_sample_ratio0.01_ViT_seed-42
+time_start_train: 28.07.2024 00:14:55

@@ -3,6 +3,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torchmetrics.classification import Precision, Recall, F1Score
+from sklearn.metrics import precision_score, recall_score, f1_score
+
+
 
 def img_to_patch(x, patch_size, flatten_channels=True):
     """
@@ -149,6 +153,7 @@ class ViT(L.LightningModule):
 
         self.log("%s_loss" % mode, loss, on_step=True, on_epoch=True, prog_bar=True, sync_dist=True)
         self.log("%s_acc" % mode, acc, on_step=True, on_epoch=True, prog_bar=True, sync_dist=True)
+
         return loss
 
     def training_step(self, batch, batch_idx):

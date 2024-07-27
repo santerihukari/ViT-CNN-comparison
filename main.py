@@ -1,96 +1,187 @@
-#implement try-catch
-#
-
-
-
-import lightning as L
 import torch
 from torchvision import transforms
 from torchvision.datasets import CIFAR10
 import torch.utils.data as data
 from pytorch_lightning import loggers as pl_loggers
-from train import *
+from train import train_model, test_model
 import yaml
 import traceback
+from sklearn.model_selection import train_test_split
+import math
+
+from project_utils import *
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+test_mode = 0 if torch.cuda.is_available() else 1
+
+# Load the config file
+config_path = 'config.yml'
+with open(config_path, 'r') as file:
+    config = yaml.safe_load(file)
+
+# Define dataset parameters directly in the script
+DATASET_PATH = "data/"
+#DATASET_NAME = "Caltech-256"  # Use "CIFAR-10" or "TinyImageNet" as needed
+#DATASET_NAME = "CIFAR-10"  # Use "CIFAR-10" or "TinyImageNet" as needed
+DATASET_NAME = "TinyImageNet"  # Use "CIFAR-10" or "TinyImageNet" as needed
+MODEL_NAME = "ViT"  # Use "ResNet-18" as needed
+#MODEL_NAME = "ResNet-18"  # Use "ResNet-18" as needed
+SUBSET_PERCENTAGE = 0.01  # For example, 0.1 use 10% of the dataset
+deterministic_seed = 42
+run_name = f"{DATASET_NAME}_sample_ratio{SUBSET_PERCENTAGE}_{MODEL_NAME}_seed-{deterministic_seed}"
+config['run_name'] = run_name
+print("Run name: " + run_name)
+
+LOGGER_PATH = "narvi_logs/"
+LOGGER_NAME = "ViT_run"
+CHECKPOINT_PATH = "saved_models/resnet18/"
+
+if test_mode:
+    SUBSET_PERCENTAGE = SUBSET_PERCENTAGE / 10
+    config['TRAINER']['MAX_EPOCHS'] = 1
+config['MODEL_ARGS']['MODEL_NAME'] = MODEL_NAME
+
+if DATASET_NAME == "TinyImageNet":
+    config['MODEL_ARGS']['num_classes'] = 200
+    config['MODEL_ARGS']['patch_size'] = 8
+    train_transform = transforms.Compose([
+        transforms.Resize((64, 64)),
+        transforms.ToTensor(),
+        # Replace with calculated mean and std
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    test_transform = transforms.Compose([
+        transforms.Resize((64, 64)),
+        transforms.ToTensor(),
+
+        # Replace with calculated mean and std
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+elif DATASET_NAME == "CIFAR-10":
+    config['MODEL_ARGS']['num_classes'] = 10
+    train_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010]),
+
+    ])
+    test_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010]),
+
+    ])
+else:
+    raise ValueError(f"Unknown dataset: {DATASET_NAME}")
 
 
-cfgs_vit_2 = [
-    'configs_second_narvi_run/resnet18_narvi_1.yml',
-    'configs_second_narvi_run/ViT_narvi_1.yml',
-    'configs_second_narvi_run/resnet18_narvi_2.yml',
-    'configs_second_narvi_run/ViT_narvi_2.yml',
-    'configs_second_narvi_run/resnet18_narvi_3.yml',
-    'configs_second_narvi_run/ViT_narvi_3.yml',
-    'configs_second_narvi_run/resnet18_narvi_4.yml',
-    'configs_second_narvi_run/ViT_narvi_4.yml',
-    'configs_second_narvi_run/resnet18_narvi_5.yml',
-    'configs_second_narvi_run/ViT_narvi_5.yml',
-    'configs_second_narvi_run/resnet18_narvi_6.yml',
-    'configs_second_narvi_run/ViT_narvi_6.yml',
-    'configs_second_narvi_run/resnet18_narvi_7.yml',
-    'configs_second_narvi_run/ViT_narvi_7.yml',
-    'configs_second_narvi_run/resnet18_narvi_8.yml',
-    'configs_second_narvi_run/ViT_narvi_8.yml',
-    'configs_second_narvi_run/resnet18_narvi_9.yml',
-    'configs_second_narvi_run/ViT_narvi_9.yml',
-    'configs_second_narvi_run/resnet18_narvi_10.yml',
-    'configs_second_narvi_run/ViT_narvi_10.yml'
-    ]
-cfgs_vit_2 = [
-    'configs_second_narvi_run/ViT_narvi_10.yml',
-    'configs_second_narvi_run/resnet18_narvi_10.yml'
-    ]
+def get_balanced_train_subset(dataset, subset_percentage, seed=deterministic_seed):
+    targets = dataset.dataset.targets if isinstance(dataset, torch.utils.data.Subset) else dataset.targets
+    n_classes = len(set(targets))
 
-cfg_0 = 'configs_second_narvi_run/resnet18_narvi_1.yml'
+    # Calculate the number of samples based on the subset percentage
+    num_samples = int(len(targets) * subset_percentage)
 
-cfgs = cfgs_vit_2
+    # Ensure we have at least as many samples as there are classes
+    if num_samples < n_classes:
+        print(
+            f"Requested subset percentage results in fewer samples ({num_samples}) than the number of classes ({n_classes}). "
+            f"Adjusting to use all classes with {n_classes} samples.")
+        num_samples = n_classes
+        subset_percentage = num_samples / len(targets)
 
-train_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize([0.49139968, 0.48215841, 0.44653091],
-                                                                                  [0.24703223, 0.24348513,
-                                                                                   0.26158784]), ])
-test_transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize([0.49139968, 0.48215841, 0.44653091],
-                                                                                 [0.24703223, 0.24348513,
-                                                                                  0.26158784]), ])
-cifar_train = CIFAR10(root="data/", train=True, transform=train_transform, download=True)
-run_counter = 0
+    train_indices, _ = train_test_split(
+        range(len(targets)), train_size=subset_percentage, stratify=targets, random_state=seed
+    )
+    return train_indices
 
-for cfgpath in cfgs:
-    print("Run counter:", run_counter)
-    with open(cfgpath, 'r') as file:
-        cfg = yaml.safe_load(file)
-    if torch.cuda.is_available() and (list(range(torch.cuda.device_count() > 1))):
-        print("Using Narvi settings with ", cfg["TRAINER"]["MAX_EPOCHS"], " epochs.")
-        pass
-    else:
-        cfg["TRAINER"]["MAX_EPOCHS"] = 5
-        print("Using test settings with ", cfg["TRAINER"]["MAX_EPOCHS"], " epochs.")
 
-    train_dataset = cifar_train
-    with open(cfg["DATASET"]["DATA_SAMPLESET_NAME"], 'r') as file:
-        sampleset = yaml.load(file, Loader=yaml.FullLoader)
-    train_set = torch.utils.data.Subset(train_dataset, sampleset['Train_sample_ids'])
-    val_set = torch.utils.data.Subset(train_dataset, sampleset['Val_sample_ids'])
+def get_balanced_val_subset(dataset, subset_percentage, seed=deterministic_seed):
+    targets = [dataset[i][1] for i in range(len(dataset))]
+    n_classes = len(set(targets))
 
-    # We define a set of data loaders that we can use for various purposes later.
-    train_loader = data.DataLoader(train_set, batch_size=cfg["TRAIN_LOADER"]["BATCH_SIZE"], shuffle=False, drop_last=True, pin_memory=True, num_workers=4)
-    val_loader = data.DataLoader(val_set, batch_size=cfg["TRAIN_LOADER"]["BATCH_SIZE"], shuffle=False, drop_last=False, num_workers=4)
+    # Calculate the number of samples based on the subset percentage
+    num_samples = int(len(targets) * subset_percentage)
 
-    logger = pl_loggers.TensorBoardLogger(cfg["LOGGER"]["logger_path"], name=cfg["LOGGER"]["logger_name"])
-    try:
-        run_counter = run_counter+1
-#        if run_counter < 3:
-#            print(int('e'))
-        model, trainer = train_model(cfg, logger, train_loader, val_loader)
-        trainer.logger.finalize("ok")
-    except KeyboardInterrupt:
-        print("KeyboardInterrupt. Aborting.")
-        raise
-    except Exception as err:
-        print(type(err))  # the exception type
-        print(err)  # actual error
-        traceback.print_exc()
+    # Ensure we have at least as many samples as there are classes
+    if num_samples < n_classes:
+        print(
+            f"Requested subset percentage results in fewer samples ({num_samples}) than the number of classes ({n_classes}). "
+            f"Adjusting to use all classes with {n_classes} samples.")
+        num_samples = n_classes
+        subset_percentage = num_samples / len(targets)
 
+    val_indices, _ = train_test_split(
+        range(len(targets)), train_size=subset_percentage, stratify=targets, random_state=seed
+    )
+    return val_indices
+# Set up data transformations
+train_transform = transforms.Compose([
+#    transforms.Resize((224, 224)),  # Resize images to 224x224 for ViT
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+])
+test_transform = transforms.Compose([
+#    transforms.Resize((224, 224)),  # Resize images to 224x224 for ViT
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+])
+
+# Load dataset
+train_dataset, val_dataset, test_dataset = load_dataset(DATASET_NAME, DATASET_PATH, train_transform, test_transform)
+
+# Get balanced subset
+subset_indices_train = get_balanced_train_subset(train_dataset, SUBSET_PERCENTAGE)
+train_dataset = torch.utils.data.Subset(train_dataset, subset_indices_train)
+subset_indices_val = get_balanced_val_subset(val_dataset, SUBSET_PERCENTAGE)
+val_dataset = torch.utils.data.Subset(val_dataset, subset_indices_val)
+
+# Create DataLoader with adaptive batch size
+train_loader = data.DataLoader(
+    train_dataset,
+    batch_size=min(128, len(train_dataset)),
+    shuffle=True,
+    drop_last=True,
+    pin_memory=True,
+    num_workers=4
+)
+val_loader = data.DataLoader(
+    val_dataset,
+    batch_size=min(128, len(val_dataset)),
+    shuffle=False,
+    drop_last=False,
+    num_workers=4
+)
+test_loader = data.DataLoader(
+    test_dataset,
+    batch_size=min(128, len(test_dataset)),
+    shuffle=False,
+    drop_last=False,
+    num_workers=4
+)
+
+# Set up logger
+logger = pl_loggers.TensorBoardLogger(LOGGER_PATH, name=LOGGER_NAME)
+
+# Training loop with error handling
+try:
+    model, trainer = train_model(config, logger, train_loader, val_loader)
+    trainer.logger.finalize("ok")
+except KeyboardInterrupt:
+    print("KeyboardInterrupt. Aborting.")
+    raise
+except Exception as err:
+    print(type(err))  # the exception type
+    print(err)  # actual error
+    traceback.print_exc()
+
+# Optional: Test the model after training
+"""
+try:
+    test_model(model, test_loader, trainer)
+except Exception as err:
+    print("Testing failed.")
+    print(type(err))  # the exception type
+    print(err)  # actual error
+    traceback.print_exc()
+"""

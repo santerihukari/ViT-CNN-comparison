@@ -1,0 +1,29 @@
+TRAIN_LOADER:
+  BATCH_SIZE: 128
+TRAINER:
+  NAME: "ViT-Test"
+  BASE_LR: 3e-4
+  MAX_EPOCHS: 50
+  CHECKPOINT_PATH: "saved_models/VisionTransformers/"
+  LOG_EVERY_N_STEPS: 1
+  TUNE: "False"
+
+MODEL_ARGS:
+  embed_dim: 256
+  hidden_dim: 512
+  num_heads: 8
+  num_layers: 6
+  patch_size: 4
+  num_channels: 3
+  num_patches: 64
+  num_classes: 10
+  dropout: 0.2
+  learning_rate: 0.0003
+
+DATASET:
+  DATASET_PATH: "data/"
+  DATASET: "CIFAR-10"
+  DATA_SAMPLESET_NAME: "subsets/CIFAR-10_full_randomshuffle/CIFAR-10_full_randomshuffle_0.yml"
+LOGGER:
+  logger_path: "narvi_logs/"
+  logger_name: "ViT"

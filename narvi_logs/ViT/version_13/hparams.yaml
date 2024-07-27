@@ -1,0 +1,4 @@
+cpu_info: ' Intel(R) Core(TM) i7-10510U CPU @ 1.80GHz'
+cuda_info: []
+data_sampleset_name: subsets/CIFAR-10/CIFAR-10_sequential_700-300_0.yml
+time_start_train: 01.12.2023 15:30:14

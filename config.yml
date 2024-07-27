@@ -1,0 +1,25 @@
+# Model parameters
+MODEL_ARGS:
+  MODEL_NAME: resnet18  # or "ViT"
+  embed_dim: 256
+  hidden_dim: 512
+  num_heads: 8
+  num_layers: 6
+  patch_size: 4 #4
+  num_channels: 3
+  num_patches: 64 #64
+  num_classes: 10
+  dropout: 0.2
+  learning_rate: 0.0003
+
+TRAINER:
+  BASE_LR: 3e-4
+  MAX_EPOCHS: 180
+  CHECKPOINT_PATH: "saved_models/resnet18/"
+  LOG_EVERY_N_STEPS: 1
+  TUNE: "False"
+
+# Logger parameters
+LOGGER:
+  logger_path: "narvi_logs/"
+  logger_name: "ViT_run"  # or "ResNet18_run"

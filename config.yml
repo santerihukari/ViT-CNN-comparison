@@ -21,5 +21,5 @@ TRAINER:
 
 # Logger parameters
 LOGGER:
-  logger_path: "narvi_logs/"
-  logger_name: "ViT_run"  # or "ResNet18_run"
+  logger_path: "Testruns_28-07-2024/"
+  logger_name: "Testruns_28-07-2024"  # or "ResNet18_run"

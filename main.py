@@ -46,13 +46,13 @@ run_name = f"{DATASET_NAME}_sample_ratio{SUBSET_PERCENTAGE}_{MODEL_NAME}_seed-{d
 config['run_name'] = run_name
 print("Run name: " + run_name)
 
-LOGGER_PATH = "narvi_logs/"
-LOGGER_NAME = "ViT_run"
+LOGGER_PATH = "TINY-DEBUG_06-08-2024_testruns/"
+LOGGER_NAME = run_name
 CHECKPOINT_PATH = "saved_models/resnet18/"
 
 if test_mode:
-    SUBSET_PERCENTAGE = SUBSET_PERCENTAGE / 10
-    config['TRAINER']['MAX_EPOCHS'] = 20
+#    SUBSET_PERCENTAGE = SUBSET_PERCENTAGE / 10
+    config['TRAINER']['MAX_EPOCHS'] = 5
 config['MODEL_ARGS']['MODEL_NAME'] = MODEL_NAME
 
 if DATASET_NAME == "TinyImageNet":
@@ -88,6 +88,7 @@ else:
 
 
 def get_balanced_train_subset(dataset, subset_percentage, seed=deterministic_seed):
+
     targets = dataset.dataset.targets if isinstance(dataset, torch.utils.data.Subset) else dataset.targets
     n_classes = len(set(targets))
 
@@ -124,9 +125,17 @@ def get_balanced_val_subset(dataset, subset_percentage, seed=deterministic_seed)
         num_samples = n_classes
         subset_percentage = num_samples / len(targets)
 
-    val_indices, _ = train_test_split(
-        range(len(targets)), train_size=subset_percentage, stratify=targets, random_state=seed
-    )
+    if subset_percentage == 1:
+        val_indices = list(range(len(targets)))
+    else:
+        val_indices, _ = train_test_split(
+            range(len(targets)), train_size=subset_percentage, stratify=targets, random_state=seed
+        )
+
+
+#    val_indices, _ = train_test_split(
+#        range(len(targets)), train_size=subset_percentage, stratify=targets, random_state=seed
+#    )
     return val_indices
 # Set up data transformations
 train_transform = transforms.Compose([
@@ -141,14 +150,16 @@ test_transform = transforms.Compose([
 ])
 
 # Load dataset
-train_dataset, val_dataset, test_dataset = load_dataset(DATASET_NAME, DATASET_PATH, train_transform, test_transform)
-
+train_dataset, val_dataset = load_dataset(DATASET_NAME, DATASET_PATH, train_transform, test_transform)
+subset_indices_val = 0
 # Get balanced subset
-subset_indices_train = get_balanced_train_subset(train_dataset, SUBSET_PERCENTAGE)
-train_dataset = torch.utils.data.Subset(train_dataset, subset_indices_train)
-subset_indices_val = get_balanced_val_subset(val_dataset, SUBSET_PERCENTAGE)
-val_dataset = torch.utils.data.Subset(val_dataset, subset_indices_val)
-
+if (SUBSET_PERCENTAGE < 1):
+    subset_indices_train = get_balanced_train_subset(train_dataset, SUBSET_PERCENTAGE)
+    train_dataset = torch.utils.data.Subset(train_dataset, subset_indices_train)
+    subset_indices_val = get_balanced_val_subset(val_dataset, SUBSET_PERCENTAGE)
+    val_dataset = torch.utils.data.Subset(val_dataset, subset_indices_val)
+else:
+    print("Using full dataset. Omitting subsampling.")
 # Create DataLoader with adaptive batch size
 train_loader = data.DataLoader(
     train_dataset,
@@ -161,13 +172,6 @@ train_loader = data.DataLoader(
 val_loader = data.DataLoader(
     val_dataset,
     batch_size=min(128, len(val_dataset)),
-    shuffle=False,
-    drop_last=False,
-    num_workers=4
-)
-test_loader = data.DataLoader(
-    test_dataset,
-    batch_size=min(128, len(test_dataset)),
     shuffle=False,
     drop_last=False,
     num_workers=4

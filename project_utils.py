@@ -8,14 +8,20 @@ from torchvision import transforms
 from torch.utils.data import Subset, Dataset
 from PIL import Image
 import pandas as pd
+import torch
 
 
 class TinyImageNetValidationDataset(Dataset):
-    def __init__(self, images_dir, annotations_file, transform=None):
+    def __init__(self, images_dir, annotations_file, transform=None, class_to_idx=None):
         self.images_dir = images_dir
         self.transform = transform
+        self.class_to_idx = class_to_idx  # Use provided class_to_idx
+
+        if self.class_to_idx is None:
+            raise ValueError("class_to_idx must be provided for TinyImageNetValidationDataset")
         self.image_labels = pd.read_csv(annotations_file, sep='\t', header=None,
                                         names=['filename', 'class', 'column2', 'column3', 'column4', 'column5'])
+
         # Ensure filenames are treated as strings
         self.image_labels['filename'] = self.image_labels['filename'].astype(str)
 
@@ -23,18 +29,22 @@ class TinyImageNetValidationDataset(Dataset):
         self.image_labels['filepath'] = self.image_labels['filename'].apply(lambda x: os.path.join(images_dir, x))
 
         # Create class-to-index mapping
-        self.class_to_idx = {cls: idx for idx, cls in enumerate(self.image_labels['class'].unique())}
+#        self.class_to_idx = {cls: idx for idx, cls in enumerate(self.image_labels['class'].unique())}
         self.image_labels['class_idx'] = self.image_labels['class'].apply(lambda x: self.class_to_idx[x])
+#        self.image_labels['class_idx'] = self.image_labels['class']
 
     def __len__(self):
         return len(self.image_labels)
 
     def __getitem__(self, idx):
-#        print(self.image_labels[1:10])
         img_path = self.image_labels.iloc[idx]['filepath']
-#        print("img_path:",img_path)
         img = Image.open(img_path).convert('RGB')
         label = self.image_labels.iloc[idx]['class_idx']
+
+#        class_name = self.image_labels.iloc[idx]['class']
+#        class_idx = self.class_to_idx[class_name]
+#        label = torch.tensor(class_idx)
+
         if self.transform:
             img = self.transform(img)
         return img, label
@@ -86,12 +96,12 @@ def download_and_extract_tinyimagenet(url, download_path, extract_path):
     else:
         print("Tiny ImageNet already downloaded and extracted.")
 
-def load_dataset(dataset_name, data_path, train_transform, test_transform, val_split=0.2, test_split=0.1, seed=42):
+def load_dataset(dataset_name, data_path, train_transform, test_transform, val_split=0.2, test_split=0, seed=42):
     """Load the dataset and return data loaders."""
     if dataset_name == "CIFAR-10":
         train_dataset = CIFAR10(root=data_path, train=True, transform=train_transform, download=True)
         val_dataset = CIFAR10(root=data_path, train=False, transform=test_transform, download=True)
-        test_dataset = CIFAR10(root=data_path, train=False, transform=test_transform, download=True)
+#        test_dataset = CIFAR10(root=data_path, train=False, transform=test_transform, download=True)
     elif dataset_name == "TinyImageNet":
         # Download and extract Tiny ImageNet
         tinyimagenet_url = "http://cs231n.stanford.edu/tiny-imagenet-200.zip"
@@ -111,20 +121,11 @@ def load_dataset(dataset_name, data_path, train_transform, test_transform, val_s
         if not os.path.isfile(val_annotations_file):
             raise FileNotFoundError(f"Validation annotations file not found: {val_annotations_file}")
 
-        # Load Tiny ImageNet
-        # Training dataset
         train_dataset = ImageFolder(root=train_dir, transform=train_transform)
+        class_to_idx = train_dataset.class_to_idx
 
-        # Validation dataset
-        val_dataset = TinyImageNetValidationDataset(val_images_dir, val_annotations_file, transform=test_transform)
+        val_dataset = TinyImageNetValidationDataset(val_images_dir, val_annotations_file, transform=test_transform, class_to_idx=class_to_idx)
 
-        # There is no predefined test dataset, so we'll use a subset of validation set as the test set
-        num_val_samples = len(val_dataset)
-        val_indices, test_indices = train_test_split(
-            list(range(num_val_samples)), test_size=test_split, random_state=seed
-        )
-        val_dataset = Subset(val_dataset, val_indices)
-        test_dataset = Subset(val_dataset, test_indices)
     elif dataset_name == "Caltech-256":
         # Download and extract Caltech-256
         caltech256_url = "http://www.vision.caltech.edu/Image_Datasets/Caltech256/256_ObjectCategories.tar"
@@ -151,4 +152,4 @@ def load_dataset(dataset_name, data_path, train_transform, test_transform, val_s
     else:
         raise ValueError(f"Dataset {dataset_name} is not supported.")
 
-    return train_dataset, val_dataset, test_dataset
+    return train_dataset, val_dataset

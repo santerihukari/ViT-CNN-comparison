@@ -41,10 +41,6 @@ class TinyImageNetValidationDataset(Dataset):
         img = Image.open(img_path).convert('RGB')
         label = self.image_labels.iloc[idx]['class_idx']
 
-#        class_name = self.image_labels.iloc[idx]['class']
-#        class_idx = self.class_to_idx[class_name]
-#        label = torch.tensor(class_idx)
-
         if self.transform:
             img = self.transform(img)
         return img, label

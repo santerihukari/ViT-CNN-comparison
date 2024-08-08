@@ -22,6 +22,7 @@ parser = argparse.ArgumentParser(description="Train and evaluate a model on a da
 parser.add_argument('--config', type=str, default='config.yml', help='Path to the config file')
 parser.add_argument('--dataset_name', type=str, default='TinyImageNet', help='Name of the dataset (CIFAR-10 or TinyImageNet)')
 parser.add_argument('--model_name', type=str, default='ViT', help='Name of the model (ResNet-18 or ViT)')
+parser.add_argument('--epochs', type=int, default=180, help='Number of epochs to use')
 parser.add_argument('--subset_percentage', type=float, default=1, help='Percentage of the dataset to use for training and validation')
 args = parser.parse_args()
 
@@ -40,45 +41,57 @@ DATASET_PATH = "data/"
 DATASET_NAME = args.dataset_name
 MODEL_NAME = args.model_name
 SUBSET_PERCENTAGE = args.subset_percentage
-
+config['TRAINER']['MAX_EPOCHS'] = args.epochs
 deterministic_seed = 42
 run_name = f"{DATASET_NAME}_sample_ratio{SUBSET_PERCENTAGE}_{MODEL_NAME}_seed-{deterministic_seed}"
 config['run_name'] = run_name
 print("Run name: " + run_name)
+print("Num epochs:",config['TRAINER']['MAX_EPOCHS'])
 
-LOGGER_PATH = "TINY-DEBUG_06-08-2024_testruns/"
+LOGGER_PATH = "Experiments_08-08-2024/"
 LOGGER_NAME = run_name
 CHECKPOINT_PATH = "saved_models/resnet18/"
 
-if test_mode:
+#if test_mode:
 #    SUBSET_PERCENTAGE = SUBSET_PERCENTAGE / 10
-    config['TRAINER']['MAX_EPOCHS'] = 5
+#    config['TRAINER']['MAX_EPOCHS'] = 5
 config['MODEL_ARGS']['MODEL_NAME'] = MODEL_NAME
+
+train_transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+])
+test_transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+])
 
 if DATASET_NAME == "TinyImageNet":
     config['MODEL_ARGS']['num_classes'] = 200
     config['MODEL_ARGS']['patch_size'] = 8
+    print("Performing TinyImageNet transformations")
     train_transform = transforms.Compose([
-        transforms.Resize((64, 64)),
+        transforms.RandomResizedCrop(64, scale=(0.8, 1.0)),
+        transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        # Replace with calculated mean and std
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
     test_transform = transforms.Compose([
-        transforms.Resize((64, 64)),
         transforms.ToTensor(),
-
-        # Replace with calculated mean and std
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 elif DATASET_NAME == "CIFAR-10":
     config['MODEL_ARGS']['num_classes'] = 10
+    print("Performing CIFAR-10 transformations")
     train_transform = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010]),
 
     ])
     test_transform = transforms.Compose([
+
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010]),
 
@@ -138,16 +151,6 @@ def get_balanced_val_subset(dataset, subset_percentage, seed=deterministic_seed)
 #    )
     return val_indices
 # Set up data transformations
-train_transform = transforms.Compose([
-#    transforms.Resize((224, 224)),  # Resize images to 224x224 for ViT
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-])
-test_transform = transforms.Compose([
-#    transforms.Resize((224, 224)),  # Resize images to 224x224 for ViT
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-])
 
 # Load dataset
 train_dataset, val_dataset = load_dataset(DATASET_NAME, DATASET_PATH, train_transform, test_transform)
@@ -156,8 +159,8 @@ subset_indices_val = 0
 if (SUBSET_PERCENTAGE < 1):
     subset_indices_train = get_balanced_train_subset(train_dataset, SUBSET_PERCENTAGE)
     train_dataset = torch.utils.data.Subset(train_dataset, subset_indices_train)
-    subset_indices_val = get_balanced_val_subset(val_dataset, SUBSET_PERCENTAGE)
-    val_dataset = torch.utils.data.Subset(val_dataset, subset_indices_val)
+#    subset_indices_val = get_balanced_val_subset(val_dataset, SUBSET_PERCENTAGE)
+#    val_dataset = torch.utils.data.Subset(val_dataset, subset_indices_val)
 else:
     print("Using full dataset. Omitting subsampling.")
 # Create DataLoader with adaptive batch size

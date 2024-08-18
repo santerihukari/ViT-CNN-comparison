@@ -2,9 +2,10 @@ import os
 import re
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
-from scipy.interpolate import griddata
+
+
+
 
 
 def list_and_sort_tensorboard_logs(base_dir):
@@ -28,11 +29,19 @@ def extract_ratio_from_path(path):
 
 def filter_logs(log_paths, dataset_name, model_name):
     filtered_logs = []
+    seen_versions = set()
+
     for log_path in log_paths:
-        if dataset_name in log_path and model_name in log_path:
+        if dataset_name in log_path and model_name in log_path and 'tcsc' in log_path:
             ratio = extract_ratio_from_path(log_path)
-            if ratio is not None:
+            # Extract unique identifier for the log, typically the version directory
+            version = os.path.dirname(log_path).split('/')[-1]
+            identifier = (ratio, version)
+
+            if ratio is not None and identifier not in seen_versions:
                 filtered_logs.append((log_path, ratio))
+                seen_versions.add(identifier)
+
     return filtered_logs
 
 
@@ -51,11 +60,6 @@ def extract_metric_epoch(log_path, metric_name):
     return epochs, values
 
 
-def rolling_average(data, window_size):
-    """Apply a rolling average with a specified window size."""
-    return np.convolve(data, np.ones(window_size) / window_size, mode='valid')
-
-
 def normalize_epochs(epochs, new_min=1, new_max=180):
     """Normalize epoch values to the range [new_min, new_max]."""
     min_epoch = min(epochs)
@@ -63,99 +67,104 @@ def normalize_epochs(epochs, new_min=1, new_max=180):
     return [new_min + (e - min_epoch) * (new_max - new_min) / (max_epoch - min_epoch) for e in epochs]
 
 
-def plot_3d_surface(logs_data, dataset_name, model_name, metric_name, fig_num):
-    fig = plt.figure(fig_num, figsize=(12, 8))
-    ax = fig.add_subplot(111, projection='3d')
-
-    epoch_values = []
-    ratio_values = []
-    metric_values = []
+def plot_2d_accuracy_vs_epoch(logs_data, dataset_name, model_name, metric_name, output_dir):
+    plt.figure(figsize=(10, 6))
 
     for log_path, ratio in logs_data:
         epochs, values = extract_metric_epoch(log_path, metric_name)
         if epochs is not None:
-            # Normalize the epoch values to fit within [1, 180] range for each log individually
+            # Normalize the epoch values to fit within [1, 180] range
             norm_epochs = normalize_epochs(epochs)
+            plt.plot(norm_epochs, values, label=f'Ratio {ratio:.3f}')
 
-            # Smooth the metric values using a 3-step rolling average
-            smoothed_values = rolling_average(values, window_size=3)
-            smoothed_epochs = norm_epochs[:len(smoothed_values)]  # Align epochs with smoothed values
+    # Add vertical lines at epochs 100 and 150 to indicate learning rate reductions
+    plt.axvline(x=100, color='black', linestyle='--', linewidth=2, label='LR reduced')
+    plt.axvline(x=150, color='black', linestyle='--', linewidth=2)
 
-            # Collect all data points
-            epoch_values.extend(smoothed_epochs)
-            ratio_values.extend([ratio] * len(smoothed_values))
-            metric_values.extend(smoothed_values)
+    plt.xlabel('Epoch')
+    plt.ylabel(metric_name.replace('_', ' ').title())
+    plt.title(f'{metric_name.replace("_", " ").title()} vs Epoch ({dataset_name}/{model_name})')
+    plt.legend()
+    plt.tight_layout()
 
-    # Create a grid for the surface plot
-    epoch_grid, ratio_grid = np.meshgrid(
-        np.linspace(min(epoch_values), max(epoch_values), num=50),
-        np.linspace(min(ratio_values), max(ratio_values), num=50)
-    )
+    file_name = f'{output_dir}/{dataset_name}_{model_name}_{metric_name}_accuracy_vs_epoch.png'
+    plt.savefig(file_name)
+    plt.close()
 
-    # Interpolate metric values on the grid
-    grid_metric = griddata(
-        (epoch_values, ratio_values),
-        metric_values,
-        (epoch_grid, ratio_grid),
-        method='cubic'
-    )
 
-    # Plot surface
-    surf = ax.plot_surface(epoch_grid, ratio_grid, grid_metric, cmap='viridis', edgecolor='none')
-    ax.set_xlabel('Normalized Epoch')
-    ax.set_ylabel('Dataset Ratio')
-    ax.set_zlabel(metric_name.replace('_', ' ').title())
-    ax.set_title(f'3D Surface Plot of {metric_name.replace("_", " ").title()} ({dataset_name}/{model_name})')
-    fig.colorbar(surf, shrink=0.5, aspect=5)
+def plot_2d_best_accuracy_vs_ratio(logs_data, dataset_name, model_name, metric_name, output_dir):
+    ratios = []
+    best_accuracies = []
 
-    # Plot solid black lines at epochs 100 and 150
-    for epoch in [100, 150]:
-        # Find the index for the given epoch value
-        epoch_index = np.abs(epoch_grid[0, :] - epoch).argmin()
-        ax.plot(
-            [epoch] * len(ratio_grid[:, 0]),
-            ratio_grid[:, 0],
-            grid_metric[:, epoch_index],
-            color='black',
-            linestyle='-',
-            linewidth=2,  # Adjusted thickness
-        )
-        ax.text(
-            epoch,
-            ratio_grid[0, 0],
-            max(grid_metric[:, epoch_index]),
-            f'Epoch {epoch}',
-            color='black',
-            fontsize=9,  # Smaller font size
-            weight='bold'
-        )
+    for log_path, ratio in logs_data:
+        epochs, values = extract_metric_epoch(log_path, metric_name)
+        if epochs is not None:
+            best_accuracy = max(values)
+            ratios.append(ratio)
+            best_accuracies.append(best_accuracy)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(ratios, best_accuracies, marker='o')
+    plt.xlabel('Subset Ratio')
+    plt.ylabel(f'Best {metric_name.replace("_", " ").title()}')
+    plt.title(f'Best {metric_name.replace("_", " ").title()} vs Subset Ratio ({dataset_name}/{model_name})')
+    plt.tight_layout()
+
+    file_name = f'{output_dir}/{dataset_name}_{model_name}_{metric_name}_best_accuracy_vs_ratio.png'
+    plt.savefig(file_name)
+    plt.close()
+
+
+def save_2d_plots(dataset_name, model_name):
+    metrics = ['val_acc_epoch', 'val_loss_epoch', 'train_acc_epoch', 'train_loss_epoch']
+
+    # Create directory if it does not exist
+    output_dir = 'imgs'
+    os.makedirs(output_dir, exist_ok=True)
+
+    base_dir = '/home/santeri/ViT-CNN-comparison/TINY-DEBUG_06-08-2024_testruns'
+    log_paths = list_and_sort_tensorboard_logs(base_dir)
+    logs_data = filter_logs(log_paths, dataset_name, model_name)
+
+    if not logs_data:
+        print(f"No logs found for dataset {dataset_name} and model {model_name}.")
+        return
+
+    print(f"Found {len(logs_data)} logs for dataset {dataset_name} and model {model_name}.")
+
+    for metric_name in metrics:
+        plot_2d_accuracy_vs_epoch(logs_data, dataset_name, model_name, metric_name, output_dir)
+        plot_2d_best_accuracy_vs_ratio(logs_data, dataset_name, model_name, metric_name, output_dir)
 
 
 def main():
-    base_dir = '/home/santeri/ViT-CNN-comparison/TINY-DEBUG_06-08-2024_testruns'
-    metric_name = 'train_acc_epoch'  # Change this to the metric you want to compare
+    # Instructions for different types of plots:
 
-    datasets = ['TinyImageNet']
-    models = ['ViT']
-#    datasets = ['CIFAR-10', 'TinyImageNet']
-#    models = ['ResNet-18', 'ViT']
+    # 1. 3D Surface Plot:
+    # To generate a 3D surface plot, call the function `plot_3d_surface()`.
+    # Example:
+    # plot_3d_surface(dataset_name='CIFAR-10', model_name='ResNet-18', metric_name='val_acc_epoch')
 
-    fig_num = 1  # Start figure numbering
+    # 2. 3D Individual Logs Plot:
+    # To generate a 3D plot with individual logs without connecting them to a plane, call `plot_3d_individual_logs()`.
+    # Example:
+    # plot_3d_individual_logs(dataset_name='TinyImageNet', model_name='ViT', metric_name='val_acc_epoch')
 
-    for dataset_name in datasets:
-        for model_name in models:
-            log_paths = list_and_sort_tensorboard_logs(base_dir)
-            logs_data = filter_logs(log_paths, dataset_name, model_name)
+    # 3. 2D Accuracy vs Epoch:
+    # To generate a 2D plot for accuracy vs. epoch for all subset ratios, call `plot_2d_accuracy_vs_epoch()`.
+    # Example:
+    # plot_2d_accuracy_vs_epoch(logs_data, 'CIFAR-10', 'ResNet-18', 'val_acc_epoch', output_dir)
 
-            if not logs_data:
-                print(f"No logs found for dataset {dataset_name} and model {model_name}.")
-                continue
+    # 4. 2D Best Accuracy vs Subset Ratio:
+    # To generate a 2D plot for best accuracy vs. subset ratio, call `plot_2d_best_accuracy_vs_ratio()`.
+    # Example:
+    # plot_2d_best_accuracy_vs_ratio(logs_data, 'TinyImageNet', 'ViT', 'val_acc_epoch', output_dir)
 
-            print(f"Found {len(logs_data)} logs for dataset {dataset_name} and model {model_name}.")
-            plot_3d_surface(logs_data, dataset_name, model_name, metric_name, fig_num)
-            fig_num += 1  # Increment figure number for each plot
+    # For now, we're saving all 2D plots for CIFAR-10/ResNet-18:
+    dataset_name = 'TinyImageNet'  # Change this to the dataset you want
+    model_name = 'ViT'  # Change this to the model you want
 
-    plt.show()  # Show all plots at once
+    save_2d_plots(dataset_name, model_name)
 
 
 if __name__ == "__main__":

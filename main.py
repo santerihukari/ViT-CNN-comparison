@@ -24,6 +24,7 @@ parser.add_argument('--dataset_name', type=str, default='TinyImageNet', help='Na
 parser.add_argument('--model_name', type=str, default='ViT', help='Name of the model (ResNet-18 or ViT)')
 parser.add_argument('--epochs', type=int, default=180, help='Number of epochs to use')
 parser.add_argument('--subset_percentage', type=float, default=1, help='Percentage of the dataset to use for training and validation')
+parser.add_argument('--random_seed', type=int, default=42, help='Seed used for deterministic randomness')
 args = parser.parse_args()
 
 # Load the config file
@@ -42,13 +43,14 @@ DATASET_NAME = args.dataset_name
 MODEL_NAME = args.model_name
 SUBSET_PERCENTAGE = args.subset_percentage
 config['TRAINER']['MAX_EPOCHS'] = args.epochs
-deterministic_seed = 42
+#deterministic_seed = 42
+deterministic_seed = args.random_seed
 run_name = f"{DATASET_NAME}_sample_ratio{SUBSET_PERCENTAGE}_{MODEL_NAME}_seed-{deterministic_seed}"
 config['run_name'] = run_name
 print("Run name: " + run_name)
 print("Num epochs:",config['TRAINER']['MAX_EPOCHS'])
 
-LOGGER_PATH = "Experiments_08-08-2024/"
+LOGGER_PATH = "Experiments_18-08-2024/"
 LOGGER_NAME = run_name
 CHECKPOINT_PATH = "saved_models/resnet18/"
 
